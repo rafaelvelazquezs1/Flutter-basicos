@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'Interfaces/login.dart';
 
 void main() {
@@ -13,10 +14,7 @@ class MiAplicacion extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'FakeStore App',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.deepPurple,
-      ),
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
       home: const LoginPantalla(),
     );
   }

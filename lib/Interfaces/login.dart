@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../conexion/api.dart';
 import '../modelos/usuario.dart';
-import 'perfil.dart';
+import 'catalogo.dart';
+import '../servicios/sesion_service.dart';
 
 class LoginPantalla extends StatefulWidget {
   const LoginPantalla({super.key});
@@ -35,12 +37,24 @@ class _LoginPantallaState extends State<LoginPantalla> {
         passwordTexto,
       );
 
+      // La sesión se guarda antes de entrar a las pantallas protegidas.
+      await SesionService.guardarSesion(
+        token: ApiService.ultimoToken ?? '',
+        // La API sólo tiene usuarios; se normaliza al rol pedido por la historia.
+        rol: usuarioLogueado.obtenerRol() == 'Administrador'
+            ? 'Administrador'
+            : usuarioLogueado.obtenerRol() == 'Auditor'
+                ? 'Auditor'
+                : 'Cliente',
+        usuarioId: usuarioLogueado.id,
+      );
+
       if (mounted) {
         // Navegación limpia: destruye el historial previo para evitar acumulaciones en el stack
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => PerfilPantalla(usuario: usuarioLogueado),
+            builder: (context) => CatalogoPantalla(usuario: usuarioLogueado),
           ),
           (route) => false,
         );

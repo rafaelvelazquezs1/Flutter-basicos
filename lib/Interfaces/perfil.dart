@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import '../modelos/usuario.dart';
 import 'login.dart';
+import '../servicios/sesion_service.dart';
 
 class PerfilPantalla extends StatelessWidget {
   final Usuario usuario;
@@ -11,8 +12,7 @@ class PerfilPantalla extends StatelessWidget {
   // Escenario 1 y 3: Limpieza de datos y token
   Future<void> _cerrarSesion(BuildContext context) async {
     // 1. Limpieza de memoria persistente (SharedPreferences)
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // Elimina tokens, roles e identificadores locales
+    await SesionService.cerrarSesion(); // Elimina tokens, rol, identificador y datos locales.
 
     if (context.mounted) {
       // 2. Escenario 2: Destrucción del historial de navegación
@@ -57,11 +57,11 @@ class PerfilPantalla extends StatelessWidget {
                     radius: 48,
                     backgroundColor: tema.colorScheme.primaryContainer,
                     child: Text(
-                      usuario.nombreCompleto.isNotEmpty 
-                          ? usuario.nombreCompleto[0].toUpperCase() 
+                      usuario.nombreCompleto.isNotEmpty
+                          ? usuario.nombreCompleto[0].toUpperCase()
                           : 'U',
                       style: TextStyle(
-                        fontSize: 32, 
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: tema.colorScheme.onPrimaryContainer,
                       ),
@@ -74,9 +74,9 @@ class PerfilPantalla extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 4,
-                        )
+                        ),
                       ],
                     ),
                     child: Text(
@@ -87,7 +87,7 @@ class PerfilPantalla extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               Text(
                 usuario.nombreCompleto,
                 style: tema.textTheme.headlineSmall?.copyWith(
@@ -100,7 +100,9 @@ class PerfilPantalla extends StatelessWidget {
                 avatar: Text(usuario.obtenerInsignia()),
                 label: Text(
                   usuario.obtenerRol(),
-                  style: TextStyle(color: tema.colorScheme.onSecondaryContainer),
+                  style: TextStyle(
+                    color: tema.colorScheme.onSecondaryContainer,
+                  ),
                 ),
                 backgroundColor: tema.colorScheme.secondaryContainer,
                 side: BorderSide.none,
@@ -110,7 +112,9 @@ class PerfilPantalla extends StatelessWidget {
               // Tarjeta de detalles
               Card(
                 elevation: 0,
-                color: tema.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                color: tema.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -161,7 +165,10 @@ class PerfilPantalla extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: tema.colorScheme.error,
                   side: BorderSide(color: tema.colorScheme.error),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -180,7 +187,9 @@ class PerfilPantalla extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Cerrar Sesión'),
-          content: const Text('¿Estás seguro de que deseas salir de tu cuenta?'),
+          content: const Text(
+            '¿Estás seguro de que deseas salir de tu cuenta?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
