@@ -9,3 +9,11 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+
+# Se conservan constructores y condicionales explícitos para que el código sea
+# más fácil de explicar en clase. No son errores de compilación.
+linter:
+  rules:
+    avoid_print: false
+    curly_braces_in_flow_control_structures: false
+    prefer_initializing_formals: false

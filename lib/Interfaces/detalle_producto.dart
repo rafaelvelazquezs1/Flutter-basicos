@@ -1,108 +1,100 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_basicos/modelos/producto.dart';
-import 'package:flutter_basicos/servicios/api_productos.dart';
-import 'package:flutter_basicos/servicios/sesion_service.dart';
+import 'package:flutter_basicos/Interfaces/editar_producto.dart';
+import 'package:flutter_basicos/controllers/detalle_producto_controller.dart';
 
-// Muestra un producto y adapta los controles al rol almacenado localmente.
+// Vista de detalle: los permisos y la comunicacion con API viven en su controlador.
 class DetalleProductoPantalla extends StatefulWidget {
   final int productoId;
-
   const DetalleProductoPantalla({super.key, required this.productoId});
-
   @override
   State<DetalleProductoPantalla> createState() =>
       _DetalleProductoPantallaState();
 }
 
 class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
-  Producto? _producto;
-  bool _cargando = true;
-  bool _esAdministrador = false;
-
+  final _controlador = DetalleProductoController();
   @override
   void initState() {
     super.initState();
-    _cargarDetalle();
+    _controlador.addListener(_actualizarVista);
+    _cargar();
   }
 
-  Future<void> _cargarDetalle() async {
+  void _actualizarVista() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  Future<void> _cargar() async {
     try {
-      final datos = await Future.wait<dynamic>([
-        ApiProductos.obtenerProducto(widget.productoId),
-        SesionService.obtenerRol(),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _producto = datos[0] as Producto;
-        _esAdministrador = datos[1] == 'Administrador';
-        _cargando = false;
-      });
+      await _controlador.cargar(widget.productoId);
     } catch (_) {
-      if (!mounted) return;
-      // El catálogo recibirá este aviso y mostrará la alerta al regresar.
-      Navigator.pop(context, 'unavailable');
+      if (mounted) Navigator.pop(context, 'unavailable');
     }
   }
 
-  // Permite al administrador cambiar el título con una validación básica.
-  Future<void> _editarProducto() async {
-    final controlador = TextEditingController(text: _producto!.titulo);
-    final nuevoTitulo = await showDialog<String>(
-      context: context,
-      builder: (contexto) => AlertDialog(
-        title: const Text('Editar producto'),
-        content: TextField(
-          controller: controlador,
-          decoration: const InputDecoration(labelText: 'Título'),
+  Future<void> _editar() async {
+    final actualizado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditarProductoPantalla(
+          producto: _controlador.producto!,
+          controladorDetalle: _controlador,
         ),
+      ),
+    );
+    if (actualizado == true && mounted)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto actualizado (Simulación)')),
+      );
+  }
+
+  Future<void> _confirmarEliminacion() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogo) => AlertDialog(
+        title: const Text('Eliminar producto'),
+        content: const Text('¿Estás seguro de eliminar este producto?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(contexto),
+            onPressed: () => Navigator.pop(dialogo, false),
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(contexto, controlador.text),
-            child: const Text('Guardar'),
+            onPressed: () => Navigator.pop(dialogo, true),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
     );
-    if (nuevoTitulo == null || nuevoTitulo.trim().isEmpty) return;
+    if (confirmar != true)
+      return; // Cancelar no ejecuta ninguna solicitud DELETE.
     try {
-      await ApiProductos.editarTitulo(_producto!, nuevoTitulo);
-      if (!mounted) return;
-      setState(() => _producto!.titulo = nuevoTitulo);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Producto actualizado')));
-    } catch (_) {
+      await _controlador.eliminar();
+      if (mounted) {
+        // El catálogo muestra el mensaje cuando esta pantalla ya se cerró.
+        Navigator.pop(context, 'deleted');
+      }
+    } catch (error) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo editar el producto')),
-        );
-    }
-  }
-
-  // Elimina el producto y vuelve al catálogo para mostrar la lista actualizada.
-  Future<void> _eliminarProducto() async {
-    try {
-      await ApiProductos.eliminarProducto(_producto!.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Producto eliminado')));
-      Navigator.pop(context, true);
-    } catch (_) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo eliminar el producto')),
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
         );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_cargando)
+    if (_controlador.cargando)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    final producto = _producto!;
+    final producto = _controlador.producto!;
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle del producto')),
       body: SingleChildScrollView(
@@ -115,6 +107,8 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
                 producto.imagen,
                 height: 230,
                 fit: BoxFit.contain,
+                errorBuilder: (_, _, _) =>
+                    const Icon(Icons.image_not_supported, size: 80),
               ),
             ),
             const SizedBox(height: 20),
@@ -131,14 +125,14 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
             Chip(label: Text(producto.categoria)),
             const SizedBox(height: 12),
             Text(producto.descripcion),
-            // Estos botones ni siquiera se crean si el rol local no es Administrador.
-            if (_esAdministrador) ...[
+            // Los controles no se renderizan para Cliente ni Auditor.
+            if (_controlador.esAdministrador) ...[
               const SizedBox(height: 28),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: _editarProducto,
+                      onPressed: _editar,
                       icon: const Icon(Icons.edit),
                       label: const Text('Editar'),
                     ),
@@ -146,7 +140,7 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: _eliminarProducto,
+                      onPressed: _confirmarEliminacion,
                       icon: const Icon(Icons.delete),
                       label: const Text('Eliminar'),
                     ),

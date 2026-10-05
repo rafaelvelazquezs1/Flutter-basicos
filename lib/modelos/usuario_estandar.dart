@@ -11,7 +11,8 @@ class UsuarioEstandar extends Usuario {
   });
 
   @override
-  String obtenerRol() => "Usuario Estándar";
+  // Para estas historias, el usuario estándar representa el rol Cliente.
+  String obtenerRol() => "Cliente";
 
   @override
   String obtenerInsignia() => "👤";

@@ -1,0 +1,123 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_basicos/controllers/detalle_producto_controller.dart';
+import 'package:flutter_basicos/controllers/producto_controller.dart';
+import 'package:flutter_basicos/modelos/producto.dart';
+
+// Vista US07: precarga todos los datos y delega validacion al controlador.
+class EditarProductoPantalla extends StatefulWidget {
+  final Producto producto;
+  final DetalleProductoController controladorDetalle;
+  const EditarProductoPantalla({
+    super.key,
+    required this.producto,
+    required this.controladorDetalle,
+  });
+  @override
+  State<EditarProductoPantalla> createState() => _EditarProductoPantallaState();
+}
+
+class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
+  final _formulario = ProductoController();
+  late final TextEditingController _titulo = TextEditingController(
+    text: widget.producto.titulo,
+  );
+  late final TextEditingController _precio = TextEditingController(
+    text: widget.producto.precio.toString(),
+  );
+  late final TextEditingController _descripcion = TextEditingController(
+    text: widget.producto.descripcion,
+  );
+  late final TextEditingController _categoria = TextEditingController(
+    text: widget.producto.categoria,
+  );
+  late final TextEditingController _imagen = TextEditingController(
+    text: widget.producto.imagen,
+  );
+  Map<String, String> _errores = {};
+  bool _guardando = false;
+
+  @override
+  void dispose() {
+    for (final campo in [_titulo, _precio, _descripcion, _categoria, _imagen]) {
+      campo.dispose();
+    }
+    _formulario.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    setState(
+      () => _errores = _formulario.validar(
+        titulo: _titulo.text,
+        precio: _precio.text,
+        descripcion: _descripcion.text,
+        categoria: _categoria.text,
+        imagen: _imagen.text,
+      ),
+    );
+    if (_errores.isNotEmpty) return;
+    setState(() => _guardando = true);
+    try {
+      final actualizado = Producto(
+        id: widget.producto.id,
+        titulo: _titulo.text,
+        precio: double.parse(_precio.text),
+        descripcion: _descripcion.text,
+        categoria: _categoria.text,
+        imagen: _imagen.text,
+      );
+      await widget.controladorDetalle.editar(actualizado);
+      if (mounted) Navigator.pop(context, true);
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Editar producto')),
+    body: ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _campo(_titulo, 'Título', 'titulo'),
+        _campo(_precio, 'Precio', 'precio', teclado: TextInputType.number),
+        _campo(_descripcion, 'Descripción', 'descripcion', lineas: 3),
+        _campo(_categoria, 'Categoría', 'categoria'),
+        _campo(_imagen, 'URL de imagen', 'imagen'),
+        const SizedBox(height: 20),
+        FilledButton(
+          onPressed: _guardando ? null : _guardar,
+          child: _guardando
+              ? const CircularProgressIndicator()
+              : const Text('Guardar cambios'),
+        ),
+      ],
+    ),
+  );
+  Widget _campo(
+    TextEditingController campo,
+    String etiqueta,
+    String llave, {
+    TextInputType teclado = TextInputType.text,
+    int lineas = 1,
+  }) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: TextField(
+      controller: campo,
+      keyboardType: teclado,
+      maxLines: lineas,
+      decoration: InputDecoration(
+        labelText: etiqueta,
+        errorText: _errores[llave],
+        border: const OutlineInputBorder(),
+      ),
+    ),
+  );
+}
