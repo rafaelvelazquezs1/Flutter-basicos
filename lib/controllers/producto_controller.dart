@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:flutter_basicos/modelos/producto.dart';
 import 'package:flutter_basicos/servicios/api_productos.dart';
 import 'package:flutter_basicos/servicios/sesion_service.dart';
@@ -22,8 +23,10 @@ class ProductoController extends ChangeNotifier {
       errores['precio'] = 'Escribe un precio numérico válido.';
     if (descripcion.trim().isEmpty)
       errores['descripcion'] = 'La descripción es obligatoria.';
-    if (categoria.trim().isEmpty)
-      errores['categoria'] = 'La categoría es obligatoria.';
+    if (!ApiConfig.categorias.contains(categoria) ||
+        categoria == ApiConfig.todas) {
+      errores['categoria'] = 'Selecciona una categoría válida.';
+    }
     final url = Uri.tryParse(imagen.trim());
     if (url == null ||
         url.host.isEmpty ||

@@ -1,55 +1,62 @@
 import 'dart:convert';
 
+import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:http/http.dart' as http;
 
 import '../modelos/usuario.dart';
 
+// Servicio de usuarios para el backend Express: GET /api/users y /api/users/{id}.
 class ApiService {
-  static const String _baseUrl = 'https://fakestoreapi.com';
-  // Conserva el token recibido hasta que la pantalla de login lo guarde localmente.
+  // La sesión actual es local porque el contrato proporcionado no incluye /login.
   static String? ultimoToken;
 
   static Future<Usuario> loginYObtenerUsuario(
     String username,
     String password,
   ) async {
-    final urlLogin = Uri.parse('$_baseUrl/auth/login');
+    final respuesta = await http.get(ApiConfig.uri('/api/users'));
+    _validarRespuesta(respuesta, 'No fue posible obtener los usuarios.');
 
-    final respuestaLogin = await http.post(
-      urlLogin,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
-    );
+    final usuarios = _listaDeRespuesta(respuesta.body);
+    final datosUsuario = usuarios
+        .where((usuario) => usuario['username'] == username)
+        .firstOrNull;
 
-    print('Código de estado Login: ${respuestaLogin.statusCode}');
-    print('Respuesta Login: ${respuestaLogin.body}');
-
-    // Aceptamos tanto 200 como 201 como respuestas exitosas
-    if (respuestaLogin.statusCode == 200 || respuestaLogin.statusCode == 201) {
-      ultimoToken =
-          (jsonDecode(respuestaLogin.body) as Map<String, dynamic>)['token']
-              as String?;
-      final urlUsuarios = Uri.parse('$_baseUrl/users');
-      final respuestaUsuarios = await http.get(urlUsuarios);
-
-      if (respuestaUsuarios.statusCode == 200) {
-        List<dynamic> usuarios = jsonDecode(respuestaUsuarios.body);
-
-        final datosUsuario = usuarios.firstWhere(
-          (u) => u['username'] == username,
-          orElse: () => null,
-        );
-
-        if (datosUsuario != null) {
-          return Usuario.desdeJson(datosUsuario);
-        } else {
-          throw Exception('Usuario no encontrado en la lista de la API.');
-        }
-      } else {
-        throw Exception('Error al obtener el listado de usuarios.');
-      }
-    } else {
+    if (datosUsuario == null || datosUsuario['password'] != password) {
       throw Exception('Usuario o contraseña incorrectos.');
     }
+
+    final usuario = Usuario.desdeJson(datosUsuario);
+    // Se usa como marca de sesión hasta que el backend agregue JWT/autenticación.
+    ultimoToken = 'sesion-local-${usuario.id}';
+    return usuario;
+  }
+
+  static Future<Usuario> obtenerUsuarioPorId(int id) async {
+    final respuesta = await http.get(ApiConfig.uri('/api/users/$id'));
+    _validarRespuesta(respuesta, 'No fue posible obtener el usuario.');
+    return Usuario.desdeJson(_objetoDeRespuesta(respuesta.body));
+  }
+
+  static List<Map<String, dynamic>> _listaDeRespuesta(String cuerpo) {
+    final decodificado = jsonDecode(cuerpo);
+    final lista = decodificado is List
+        ? decodificado
+        : decodificado['users'] as List<dynamic>? ?? [];
+    return lista.map((dato) => Map<String, dynamic>.from(dato as Map)).toList();
+  }
+
+  static Map<String, dynamic> _objetoDeRespuesta(String cuerpo) {
+    final decodificado = jsonDecode(cuerpo);
+    final objeto = decodificado is Map<String, dynamic>
+        ? decodificado
+        : decodificado['user'] as Map<String, dynamic>?;
+    if (objeto == null) throw Exception('Respuesta de usuario inválida.');
+    return Map<String, dynamic>.from(objeto);
+  }
+
+  static void _validarRespuesta(http.Response respuesta, String mensaje) {
+    if (respuesta.statusCode < 200 || respuesta.statusCode >= 300)
+      throw Exception(mensaje);
   }
 }

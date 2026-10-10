@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_basicos/Interfaces/componentes/imagen_producto.dart';
 import 'package:flutter_basicos/Interfaces/editar_producto.dart';
 import 'package:flutter_basicos/controllers/detalle_producto_controller.dart';
 
@@ -50,7 +51,7 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
     );
     if (actualizado == true && mounted)
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Producto actualizado (Simulación)')),
+        const SnackBar(content: Text('CD actualizado correctamente')),
       );
   }
 
@@ -103,12 +104,10 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Image.network(
-                producto.imagen,
-                height: 230,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) =>
-                    const Icon(Icons.image_not_supported, size: 80),
+              child: ImagenProducto(
+                url: producto.imagen,
+                descripcion: 'Portada de ${producto.titulo}',
+                alto: 230,
               ),
             ),
             const SizedBox(height: 20),

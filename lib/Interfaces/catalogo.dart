@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_basicos/configuracion/api_config.dart';
+import 'package:flutter_basicos/Interfaces/componentes/imagen_producto.dart';
 import 'package:flutter_basicos/Interfaces/crear_producto.dart';
 import 'package:flutter_basicos/Interfaces/detalle_producto.dart';
 import 'package:flutter_basicos/Interfaces/perfil.dart';
@@ -46,7 +48,7 @@ class _CatalogoPantallaState extends State<CatalogoPantalla> {
       ).showSnackBar(const SnackBar(content: Text('Producto no disponible')));
     if (resultado == 'deleted') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Producto eliminado (Simulación)')),
+        const SnackBar(content: Text('CD eliminado correctamente')),
       );
       _controlador.cargarCatalogo(categoria: _controlador.categoriaActiva);
     }
@@ -104,20 +106,17 @@ class _CatalogoPantallaState extends State<CatalogoPantalla> {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.all(8),
       children: [
-        ChoiceChip(
-          label: const Text('Ver todos'),
-          selected: _controlador.categoriaActiva == null,
-          onSelected: (_) => _controlador.cargarCatalogo(),
-        ),
-        const SizedBox(width: 8),
         ..._controlador.categorias.map(
           (categoria) => Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
               label: Text(categoria),
               selected: _controlador.categoriaActiva == categoria,
-              onSelected: (_) =>
-                  _controlador.cargarCatalogo(categoria: categoria),
+              onSelected: (_) => _controlador.cargarCatalogo(
+                categoria: categoria == ApiConfig.todas
+                    ? ApiConfig.todas
+                    : categoria,
+              ),
             ),
           ),
         ),
@@ -163,11 +162,9 @@ class _CatalogoPantallaState extends State<CatalogoPantalla> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Image.network(
-                      producto.imagen,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, _, _) =>
-                          const Center(child: Icon(Icons.image_not_supported)),
+                    child: ImagenProducto(
+                      url: producto.imagen,
+                      descripcion: 'Portada de ${producto.titulo}',
                     ),
                   ),
                   const SizedBox(height: 8),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:flutter_basicos/controllers/detalle_producto_controller.dart';
 import 'package:flutter_basicos/controllers/producto_controller.dart';
 import 'package:flutter_basicos/modelos/producto.dart';
@@ -27,9 +28,7 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
   late final TextEditingController _descripcion = TextEditingController(
     text: widget.producto.descripcion,
   );
-  late final TextEditingController _categoria = TextEditingController(
-    text: widget.producto.categoria,
-  );
+  late String? _categoria = widget.producto.categoria;
   late final TextEditingController _imagen = TextEditingController(
     text: widget.producto.imagen,
   );
@@ -38,7 +37,7 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
 
   @override
   void dispose() {
-    for (final campo in [_titulo, _precio, _descripcion, _categoria, _imagen]) {
+    for (final campo in [_titulo, _precio, _descripcion, _imagen]) {
       campo.dispose();
     }
     _formulario.dispose();
@@ -51,7 +50,7 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
         titulo: _titulo.text,
         precio: _precio.text,
         descripcion: _descripcion.text,
-        categoria: _categoria.text,
+        categoria: _categoria ?? '',
         imagen: _imagen.text,
       ),
     );
@@ -63,7 +62,7 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
         titulo: _titulo.text,
         precio: double.parse(_precio.text),
         descripcion: _descripcion.text,
-        categoria: _categoria.text,
+        categoria: _categoria!,
         imagen: _imagen.text,
       );
       await widget.controladorDetalle.editar(actualizado);
@@ -89,7 +88,7 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
         _campo(_titulo, 'Título', 'titulo'),
         _campo(_precio, 'Precio', 'precio', teclado: TextInputType.number),
         _campo(_descripcion, 'Descripción', 'descripcion', lineas: 3),
-        _campo(_categoria, 'Categoría', 'categoria'),
+        _selectorCategoria(),
         _campo(_imagen, 'URL de imagen', 'imagen'),
         const SizedBox(height: 20),
         FilledButton(
@@ -118,6 +117,27 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
         errorText: _errores[llave],
         border: const OutlineInputBorder(),
       ),
+    ),
+  );
+
+  // El desplegable conserva el valor actual y limita los cambios al catálogo real.
+  Widget _selectorCategoria() => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: DropdownButtonFormField<String>(
+      initialValue: _categoria,
+      decoration: InputDecoration(
+        labelText: 'Categoría',
+        errorText: _errores['categoria'],
+        border: const OutlineInputBorder(),
+      ),
+      items: ApiConfig.categorias
+          .where((categoria) => categoria != ApiConfig.todas)
+          .map(
+            (categoria) =>
+                DropdownMenuItem(value: categoria, child: Text(categoria)),
+          )
+          .toList(),
+      onChanged: (valor) => setState(() => _categoria = valor),
     ),
   );
 }

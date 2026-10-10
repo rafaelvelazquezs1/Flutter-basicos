@@ -1,36 +1,34 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:flutter_basicos/modelos/producto.dart';
 import 'package:flutter_basicos/servicios/api_productos.dart';
 import 'package:flutter_basicos/servicios/sesion_service.dart';
 
 // Controlador del catalogo: conserva su estado fuera de la vista.
 class CatalogoController extends ChangeNotifier {
-  List<String> categorias = [];
+  List<String> categorias = ApiConfig.categorias;
   List<Producto> productos = [];
-  String? categoriaActiva;
+  String categoriaActiva = ApiConfig.todas;
   String? error;
   bool cargando = false;
   bool esAdministrador = false;
 
   Future<void> iniciar() async {
     esAdministrador = await SesionService.obtenerRol() == 'Administrador';
-    await cargarCatalogo();
+    await cargarCatalogo(categoria: ApiConfig.todas);
   }
 
   Future<void> cargarCatalogo({String? categoria}) async {
     cargando = true;
     error = null;
     productos = []; // Evita mostrar resultados de la categoria anterior.
-    categoriaActiva = categoria;
+    categoriaActiva = categoria ?? ApiConfig.todas;
     notifyListeners();
     try {
-      final resultados = await Future.wait<dynamic>([
-        ApiProductos.obtenerProductos(categoria: categoria),
-        if (categorias.isEmpty) ApiProductos.obtenerCategorias(),
-      ]);
-      productos = resultados.first as List<Producto>;
-      if (categorias.isEmpty && resultados.length > 1)
-        categorias = resultados[1] as List<String>;
+      productos = await ApiProductos.obtenerProductos(
+        categoria: categoriaActiva,
+      );
+      categorias = await ApiProductos.obtenerCategorias();
     } catch (_) {
       error = 'No se pudo cargar el catálogo. Revisa tu conexión.';
     } finally {

@@ -9,11 +9,11 @@ void main() {
 
     test('acepta los datos completos de un producto', () {
       final errores = controlador.validar(
-        titulo: 'Mochila',
+        titulo: 'Álbum de rock',
         precio: '250.50',
-        descripcion: 'Mochila escolar',
-        categoria: 'accesorios',
-        imagen: 'https://ejemplo.com/mochila.png',
+        descripcion: 'CD de colección',
+        categoria: 'Rock Internacional',
+        imagen: 'https://ejemplo.com/album.png',
       );
       expect(errores, isEmpty);
     });
@@ -42,13 +42,13 @@ void main() {
   test('Producto formatea el precio y no acepta un precio negativo', () {
     final producto = Producto(
       id: 1,
-      titulo: 'Libro',
+      titulo: 'Álbum',
       precio: 45,
-      descripcion: 'Lectura',
-      categoria: 'libros',
-      imagen: 'https://ejemplo.com/libro.png',
+      descripcion: 'Música',
+      categoria: 'Metal / Hard Rock',
+      imagen: 'https://ejemplo.com/album.png',
     );
     producto.precio = -10;
-    expect(producto.precioFormateado, r'$45.00');
+    expect(producto.precioFormateado, r'$45.00 MXN');
   });
 }

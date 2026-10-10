@@ -1,4 +1,4 @@
-// Modelo de producto. Sus atributos privados aplican encapsulamiento.
+// Modelo de un CD recibido o enviado al backend de Música CDs.
 class Producto {
   int _id;
   String _titulo;
@@ -24,12 +24,12 @@ class Producto {
   int get id => _id;
   String get titulo => _titulo;
   double get precio => _precio;
-  String get precioFormateado => '\$${_precio.toStringAsFixed(2)}';
+  // En Dart el signo $ se escapa para que no intente interpolar una variable.
+  String get precioFormateado => '\$${_precio.toStringAsFixed(2)} MXN';
   String get descripcion => _descripcion;
   String get categoria => _categoria;
   String get imagen => _imagen;
 
-  // Setters con validacion: el controlador tambien valida y muestra los errores.
   set titulo(String valor) {
     if (valor.trim().isNotEmpty) _titulo = valor.trim();
   }
@@ -50,12 +50,23 @@ class Producto {
     if (valor.trim().isNotEmpty) _imagen = valor.trim();
   }
 
+  // Convierte la respuesta JSON del backend en un objeto Dart.
   factory Producto.desdeJson(Map<String, dynamic> json) => Producto(
-    id: json['id'] as int? ?? 0,
-    titulo: json['title'] as String? ?? 'Producto sin título',
+    id: (json['id'] as num? ?? 0).toInt(),
+    titulo: json['title'] as String? ?? 'CD sin título',
     precio: (json['price'] as num? ?? 0).toDouble(),
     descripcion: json['description'] as String? ?? 'Sin descripción',
     categoria: json['category'] as String? ?? 'Sin categoría',
     imagen: json['image'] as String? ?? '',
   );
+
+  // Mantiene exactamente los nombres que espera el backend Node.js/Express.
+  Map<String, dynamic> toJson() => {
+    'id': _id,
+    'title': _titulo,
+    'price': _precio,
+    'description': _descripcion,
+    'category': _categoria,
+    'image': _imagen,
+  };
 }

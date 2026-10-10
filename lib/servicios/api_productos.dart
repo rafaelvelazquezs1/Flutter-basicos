@@ -1,79 +1,80 @@
 import 'dart:convert';
 
+import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:flutter_basicos/modelos/producto.dart';
 import 'package:http/http.dart' as http;
 
-// Este servicio es la unica capa que conoce las rutas de Fake Store API.
+// Servicio de productos: solamente consume rutas del backend local Express.
 class ApiProductos {
-  static const String _baseUrl = 'https://fakestoreapi.com';
-
   static Future<List<Producto>> obtenerProductos({String? categoria}) async {
-    final ruta = categoria == null
-        ? '/products'
-        : '/products/category/${Uri.encodeComponent(categoria)}';
-    final respuesta = await http.get(Uri.parse('$_baseUrl$ruta'));
-    _validarRespuesta(respuesta, 'No fue posible obtener los productos.');
-    final datos = jsonDecode(respuesta.body) as List<dynamic>;
-    return datos
-        .map((dato) => Producto.desdeJson(dato as Map<String, dynamic>))
+    final respuesta = await http.get(ApiConfig.uri('/api/products'));
+    _validarRespuesta(respuesta, 'No fue posible obtener los CDs.');
+    final productos = _listaDeProductos(respuesta.body);
+    // El contrato no define un endpoint de categoría; se filtra la lista local.
+    if (categoria == null || categoria == ApiConfig.todas) return productos;
+    return productos
+        .where((producto) => producto.categoria == categoria)
         .toList();
   }
 
-  static Future<List<String>> obtenerCategorias() async {
-    final respuesta = await http.get(
-      Uri.parse('$_baseUrl/products/categories'),
-    );
-    _validarRespuesta(respuesta, 'No fue posible obtener las categorías.');
-    return (jsonDecode(respuesta.body) as List<dynamic>).cast<String>();
-  }
+  // Las categorías pertenecen al catálogo de Música CDs y son fijas en la app.
+  static Future<List<String>> obtenerCategorias() async => ApiConfig.categorias;
 
   static Future<Producto> obtenerProducto(int id) async {
-    final respuesta = await http.get(Uri.parse('$_baseUrl/products/$id'));
-    _validarRespuesta(respuesta, 'Producto no disponible.');
-    return Producto.desdeJson(
-      jsonDecode(respuesta.body) as Map<String, dynamic>,
-    );
+    final respuesta = await http.get(ApiConfig.uri('/api/products/$id'));
+    _validarRespuesta(respuesta, 'CD no disponible.');
+    return Producto.desdeJson(_objetoDeProducto(respuesta.body));
   }
 
-  // POST usado por US06. La API devuelve un ID, aunque no guarda el producto realmente.
   static Future<Producto> crearProducto(Producto producto) async {
     final respuesta = await http.post(
-      Uri.parse('$_baseUrl/products'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(_productoAJson(producto)),
+      ApiConfig.uri('/api/products'),
+      headers: _cabecerasJson,
+      body: jsonEncode(producto.toJson()),
     );
-    _validarRespuesta(respuesta, 'No fue posible crear el producto.');
-    return Producto.desdeJson(
-      jsonDecode(respuesta.body) as Map<String, dynamic>,
-    );
+    _validarRespuesta(respuesta, 'No fue posible crear el CD.');
+    return Producto.desdeJson(_objetoDeProducto(respuesta.body));
   }
 
-  // PUT usado por US07. Recibe todos los campos modificables del formulario.
   static Future<Producto> editarProducto(Producto producto) async {
     final respuesta = await http.put(
-      Uri.parse('$_baseUrl/products/${producto.id}'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(_productoAJson(producto)),
+      ApiConfig.uri('/api/products/${producto.id}'),
+      headers: _cabecerasJson,
+      body: jsonEncode(producto.toJson()),
     );
-    _validarRespuesta(respuesta, 'No fue posible actualizar el producto.');
-    return Producto.desdeJson(
-      jsonDecode(respuesta.body) as Map<String, dynamic>,
-    );
+    _validarRespuesta(respuesta, 'No fue posible actualizar el CD.');
+    return Producto.desdeJson(_objetoDeProducto(respuesta.body));
   }
 
-  // DELETE usado por US08. El controlador verifica el permiso antes de llamar este metodo.
   static Future<void> eliminarProducto(int id) async {
-    final respuesta = await http.delete(Uri.parse('$_baseUrl/products/$id'));
-    _validarRespuesta(respuesta, 'No fue posible eliminar el producto.');
+    final respuesta = await http.delete(ApiConfig.uri('/api/products/$id'));
+    _validarRespuesta(respuesta, 'No fue posible eliminar el CD.');
   }
 
-  static Map<String, dynamic> _productoAJson(Producto producto) => {
-    'title': producto.titulo,
-    'price': producto.precio,
-    'description': producto.descripcion,
-    'image': producto.imagen,
-    'category': producto.categoria,
-  };
+  static const _cabecerasJson = {'Content-Type': 'application/json'};
+
+  // Acepta una lista directa o un backend que responda { products: [...] }.
+  static List<Producto> _listaDeProductos(String cuerpo) {
+    final decodificado = jsonDecode(cuerpo);
+    final lista = decodificado is List
+        ? decodificado
+        : decodificado['products'] as List<dynamic>? ?? [];
+    return lista
+        .map(
+          (dato) => Producto.desdeJson(Map<String, dynamic>.from(dato as Map)),
+        )
+        .toList();
+  }
+
+  // Acepta un producto directo o la forma { product: {...} }.
+  static Map<String, dynamic> _objetoDeProducto(String cuerpo) {
+    final decodificado = jsonDecode(cuerpo);
+    final objeto = decodificado is Map<String, dynamic>
+        ? decodificado
+        : decodificado['product'] as Map<String, dynamic>?;
+    if (objeto == null) throw Exception('Respuesta de producto inválida.');
+    return Map<String, dynamic>.from(objeto);
+  }
 
   static void _validarRespuesta(http.Response respuesta, String mensaje) {
     if (respuesta.statusCode < 200 || respuesta.statusCode >= 300)

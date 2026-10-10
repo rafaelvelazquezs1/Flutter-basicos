@@ -13,7 +13,7 @@ class MiAplicacion extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'FakeStore App',
+      title: 'Móvil Backend',
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
       home: const LoginPantalla(),
     );

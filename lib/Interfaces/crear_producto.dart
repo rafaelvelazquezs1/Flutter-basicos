@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:flutter_basicos/controllers/producto_controller.dart';
 import 'package:flutter_basicos/modelos/producto.dart';
 
@@ -14,7 +15,7 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
   final _titulo = TextEditingController();
   final _precio = TextEditingController();
   final _descripcion = TextEditingController();
-  final _categoria = TextEditingController();
+  String? _categoria;
   final _imagen = TextEditingController();
   Map<String, String> _errores = {};
   @override
@@ -38,7 +39,7 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
 
   @override
   void dispose() {
-    for (final campo in [_titulo, _precio, _descripcion, _categoria, _imagen]) {
+    for (final campo in [_titulo, _precio, _descripcion, _imagen]) {
       campo.dispose();
     }
     _controlador.dispose();
@@ -51,7 +52,7 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
         titulo: _titulo.text,
         precio: _precio.text,
         descripcion: _descripcion.text,
-        categoria: _categoria.text,
+        categoria: _categoria ?? '',
         imagen: _imagen.text,
       ),
     );
@@ -63,23 +64,18 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
           titulo: _titulo.text,
           precio: double.parse(_precio.text),
           descripcion: _descripcion.text,
-          categoria: _categoria.text,
+          categoria: _categoria!,
           imagen: _imagen.text,
         ),
       );
       if (!mounted) return;
-      for (final campo in [
-        _titulo,
-        _precio,
-        _descripcion,
-        _categoria,
-        _imagen,
-      ]) {
+      for (final campo in [_titulo, _precio, _descripcion, _imagen]) {
         campo.clear();
       }
+      setState(() => _categoria = null);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Producto creado (Simulación). Nuevo ID: ${creado.id}'),
+          content: Text('CD creado correctamente. Nuevo ID: ${creado.id}'),
         ),
       );
     } catch (error) {
@@ -101,7 +97,7 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
         _campo(_titulo, 'Título', 'titulo'),
         _campo(_precio, 'Precio', 'precio', teclado: TextInputType.number),
         _campo(_descripcion, 'Descripción', 'descripcion', lineas: 3),
-        _campo(_categoria, 'Categoría', 'categoria'),
+        _selectorCategoria(),
         _campo(_imagen, 'URL de imagen', 'imagen'),
         const SizedBox(height: 20),
         FilledButton(
@@ -130,6 +126,28 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
         errorText: _errores[llave],
         border: const OutlineInputBorder(),
       ),
+    ),
+  );
+
+  // Evita capturar categorías libres que el backend no reconoce.
+  Widget _selectorCategoria() => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: DropdownButtonFormField<String>(
+      key: ValueKey(_categoria),
+      initialValue: _categoria,
+      decoration: InputDecoration(
+        labelText: 'Categoría',
+        errorText: _errores['categoria'],
+        border: const OutlineInputBorder(),
+      ),
+      items: ApiConfig.categorias
+          .where((categoria) => categoria != ApiConfig.todas)
+          .map(
+            (categoria) =>
+                DropdownMenuItem(value: categoria, child: Text(categoria)),
+          )
+          .toList(),
+      onChanged: (valor) => setState(() => _categoria = valor),
     ),
   );
 }
