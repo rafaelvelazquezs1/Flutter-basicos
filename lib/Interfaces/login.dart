@@ -13,6 +13,7 @@ class _LoginPantallaState extends State<LoginPantalla> {
   final _usuario = TextEditingController();
   final _contrasena = TextEditingController();
   final _controlador = LoginController();
+  bool _ocultarContrasena = true;
 
   @override
   void initState() {
@@ -84,10 +85,23 @@ class _LoginPantallaState extends State<LoginPantalla> {
             const SizedBox(height: 16),
             TextField(
               controller: _contrasena,
-              obscureText: true,
-              decoration: const InputDecoration(
+              obscureText: _ocultarContrasena,
+              decoration: InputDecoration(
                 labelText: 'Contraseña',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                // Permite revisar la contraseña antes de iniciar sesión.
+                suffixIcon: IconButton(
+                  tooltip: _ocultarContrasena
+                      ? 'Mostrar contraseña'
+                      : 'Ocultar contraseña',
+                  icon: Icon(
+                    _ocultarContrasena
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                  ),
+                  onPressed: () =>
+                      setState(() => _ocultarContrasena = !_ocultarContrasena),
+                ),
               ),
             ),
             const SizedBox(height: 24),

@@ -2,11 +2,25 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:flutter_basicos/modelos/producto.dart';
 import 'package:flutter_basicos/servicios/api_productos.dart';
+import 'package:flutter_basicos/servicios/image_upload_service.dart';
 import 'package:flutter_basicos/servicios/sesion_service.dart';
 
 // Controlador compartido por los formularios Crear y Editar.
 class ProductoController extends ChangeNotifier {
   bool cargando = false;
+
+  // Abre la galería y deja que el servicio envíe la portada al backend.
+  // Devuelve null cuando la persona cancela la selección de imagen.
+  Future<String?> seleccionarYSubirPortada() async {
+    cargando = true;
+    notifyListeners();
+    try {
+      return await ImageUploadService.seleccionarYSubirPortada();
+    } finally {
+      cargando = false;
+      notifyListeners();
+    }
+  }
 
   // Devuelve un mapa de errores para que la vista marque los campos en rojo.
   Map<String, String> validar({

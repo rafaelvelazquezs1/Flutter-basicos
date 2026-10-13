@@ -88,6 +88,29 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
     }
   }
 
+  // La vista pide al controlador la acción; no conoce detalles de HTTP ni Cloudinary.
+  Future<void> _elegirImagen() async {
+    try {
+      final url = await _controlador.seleccionarYSubirPortada();
+      if (url == null || !mounted) return;
+      setState(() {
+        _imagen.text = url;
+        _errores = {..._errores}..remove('imagen');
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Portada subida correctamente.')),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Agregar producto')),
@@ -99,6 +122,22 @@ class _CrearProductoPantallaState extends State<CrearProductoPantalla> {
         _campo(_descripcion, 'Descripción', 'descripcion', lineas: 3),
         _selectorCategoria(),
         _campo(_imagen, 'URL de imagen', 'imagen'),
+        OutlinedButton.icon(
+          onPressed: _controlador.cargando ? null : _elegirImagen,
+          icon: _controlador.cargando
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.photo_library_outlined),
+          label: Text(
+            _controlador.cargando
+                ? 'Subiendo portada...'
+                : 'Elegir imagen de la galería',
+          ),
+        ),
+        const SizedBox(height: 8),
         const SizedBox(height: 20),
         FilledButton(
           onPressed: _controlador.cargando ? null : _guardar,

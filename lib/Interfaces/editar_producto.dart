@@ -36,10 +36,21 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
   bool _guardando = false;
 
   @override
+  void initState() {
+    super.initState();
+    _formulario.addListener(_actualizarVista);
+  }
+
+  void _actualizarVista() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     for (final campo in [_titulo, _precio, _descripcion, _imagen]) {
       campo.dispose();
     }
+    _formulario.removeListener(_actualizarVista);
     _formulario.dispose();
     super.dispose();
   }
@@ -79,6 +90,29 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
     }
   }
 
+  // Completa el campo image con la URL segura devuelta por el backend.
+  Future<void> _elegirImagen() async {
+    try {
+      final url = await _formulario.seleccionarYSubirPortada();
+      if (url == null || !mounted) return;
+      setState(() {
+        _imagen.text = url;
+        _errores = {..._errores}..remove('imagen');
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Portada subida correctamente.')),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Editar producto')),
@@ -90,9 +124,25 @@ class _EditarProductoPantallaState extends State<EditarProductoPantalla> {
         _campo(_descripcion, 'Descripción', 'descripcion', lineas: 3),
         _selectorCategoria(),
         _campo(_imagen, 'URL de imagen', 'imagen'),
+        OutlinedButton.icon(
+          onPressed: _guardando || _formulario.cargando ? null : _elegirImagen,
+          icon: _formulario.cargando
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.photo_library_outlined),
+          label: Text(
+            _formulario.cargando
+                ? 'Subiendo portada...'
+                : 'Elegir imagen de la galería',
+          ),
+        ),
+        const SizedBox(height: 8),
         const SizedBox(height: 20),
         FilledButton(
-          onPressed: _guardando ? null : _guardar,
+          onPressed: _guardando || _formulario.cargando ? null : _guardar,
           child: _guardando
               ? const CircularProgressIndicator()
               : const Text('Guardar cambios'),
