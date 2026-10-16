@@ -8,6 +8,10 @@ class DetalleProductoController extends ChangeNotifier {
   Producto? producto;
   bool cargando = true;
   bool esAdministrador = false;
+  String? rol;
+
+  // Solamente Cliente puede añadir CDs; Auditor conserva su vista de lectura.
+  bool get puedeUsarCarrito => rol == 'Cliente';
 
   Future<void> cargar(int productoId) async {
     try {
@@ -16,7 +20,8 @@ class DetalleProductoController extends ChangeNotifier {
         SesionService.obtenerRol(),
       ]);
       producto = datos[0] as Producto;
-      esAdministrador = datos[1] == 'Administrador';
+      rol = datos[1] as String?;
+      esAdministrador = rol == 'Administrador';
     } finally {
       cargando = false;
       notifyListeners();

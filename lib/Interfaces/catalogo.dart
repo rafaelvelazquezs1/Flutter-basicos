@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_basicos/configuracion/api_config.dart';
 import 'package:flutter_basicos/Interfaces/componentes/imagen_producto.dart';
 import 'package:flutter_basicos/Interfaces/crear_producto.dart';
+import 'package:flutter_basicos/Interfaces/carrito.dart';
 import 'package:flutter_basicos/Interfaces/detalle_producto.dart';
 import 'package:flutter_basicos/Interfaces/perfil.dart';
 import 'package:flutter_basicos/controllers/catalogo_controller.dart';
@@ -62,6 +63,16 @@ class _CatalogoPantallaState extends State<CatalogoPantalla> {
       title: const Text('Catálogo de productos'),
       automaticallyImplyLeading: false,
       actions: [
+        // US09: el acceso al carrito solo aparece para el perfil Cliente.
+        if (_controlador.puedeUsarCarrito)
+          IconButton(
+            tooltip: 'Mi carrito',
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CarritoPantalla()),
+            ),
+          ),
         IconButton(
           tooltip: 'Mi perfil',
           icon: const Icon(Icons.person_outline),

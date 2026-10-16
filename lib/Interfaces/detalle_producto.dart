@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_basicos/Interfaces/componentes/imagen_producto.dart';
 import 'package:flutter_basicos/Interfaces/editar_producto.dart';
+import 'package:flutter_basicos/controllers/carrito_controller.dart';
 import 'package:flutter_basicos/controllers/detalle_producto_controller.dart';
 
 // Vista de detalle: los permisos y la comunicacion con API viven en su controlador.
@@ -14,6 +15,10 @@ class DetalleProductoPantalla extends StatefulWidget {
 
 class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
   final _controlador = DetalleProductoController();
+  final _carritoControlador = CarritoController();
+  int _cantidad = 1;
+  bool _agregando = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +33,7 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
   @override
   void dispose() {
     _controlador.dispose();
+    _carritoControlador.dispose();
     super.dispose();
   }
 
@@ -91,6 +97,35 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
     }
   }
 
+  // US09: primero se actualiza el carrito local y después se practica POST/PUT.
+  Future<void> _agregarAlCarrito() async {
+    setState(() => _agregando = true);
+    try {
+      // Se carga al pulsar para no inicializar un carrito en roles de solo lectura.
+      await _carritoControlador.iniciar();
+      final sincronizado = await _carritoControlador.agregar(
+        _controlador.producto!,
+        _cantidad,
+      );
+      if (!mounted) return;
+      final mensaje = sincronizado
+          ? 'Producto añadido al carrito.'
+          : _carritoControlador.avisoSincronizacion!;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(mensaje)));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _agregando = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_controlador.cargando)
@@ -124,6 +159,39 @@ class _DetalleProductoPantallaState extends State<DetalleProductoPantalla> {
             Chip(label: Text(producto.categoria)),
             const SizedBox(height: 12),
             Text(producto.descripcion),
+            // US09: Cliente elige una cantidad antes de añadir el CD.
+            if (_controlador.puedeUsarCarrito) ...[
+              const SizedBox(height: 28),
+              Text('Cantidad', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Restar una unidad',
+                    onPressed: _cantidad == 1 || _agregando
+                        ? null
+                        : () => setState(() => _cantidad--),
+                    icon: const Icon(Icons.remove_circle_outline),
+                  ),
+                  Text('$_cantidad'),
+                  IconButton(
+                    tooltip: 'Sumar una unidad',
+                    onPressed: _agregando
+                        ? null
+                        : () => setState(() => _cantidad++),
+                    icon: const Icon(Icons.add_circle_outline),
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: _agregando ? null : _agregarAlCarrito,
+                    icon: const Icon(Icons.add_shopping_cart),
+                    label: Text(
+                      _agregando ? 'Agregando...' : 'Agregar al carrito',
+                    ),
+                  ),
+                ],
+              ),
+            ],
             // Los controles no se renderizan para Cliente ni Auditor.
             if (_controlador.esAdministrador) ...[
               const SizedBox(height: 28),

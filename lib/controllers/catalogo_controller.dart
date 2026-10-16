@@ -12,9 +12,14 @@ class CatalogoController extends ChangeNotifier {
   String? error;
   bool cargando = false;
   bool esAdministrador = false;
+  String? rol;
+
+  // Auditor no ve controles de carrito; el caso de uso corresponde a Cliente.
+  bool get puedeUsarCarrito => rol == 'Cliente';
 
   Future<void> iniciar() async {
-    esAdministrador = await SesionService.obtenerRol() == 'Administrador';
+    rol = await SesionService.obtenerRol();
+    esAdministrador = rol == 'Administrador';
     await cargarCatalogo(categoria: ApiConfig.todas);
   }
 

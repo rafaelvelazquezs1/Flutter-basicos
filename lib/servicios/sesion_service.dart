@@ -24,6 +24,12 @@ class SesionService {
     return preferencias.getString(_rol);
   }
 
+  // El carrito usa el identificador para separar las compras de cada cliente.
+  static Future<int?> obtenerUsuarioId() async {
+    final preferencias = await SharedPreferences.getInstance();
+    return preferencias.getInt(_usuarioId);
+  }
+
   // Borra token, rol, identificador y cualquier dato local de la sesión anterior.
   static Future<void> cerrarSesion() async {
     final preferencias = await SharedPreferences.getInstance();
